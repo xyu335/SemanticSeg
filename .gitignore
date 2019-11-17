@@ -3,6 +3,7 @@ data/
 tools/
 output/
 
+*.swn
 *.tar
 *.zip
 *.swp
