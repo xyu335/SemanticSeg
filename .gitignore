@@ -1,0 +1,9 @@
+src/__pycache__/
+data/
+tools/
+output/
+
+*.tar
+*.zip
+*.swp
+*.swo
