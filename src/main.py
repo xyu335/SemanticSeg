@@ -1,7 +1,9 @@
+#!/usr/bin/python3
 import numpy as np
 import cv2
 import sys
 import masks
+import detect
 import os
 
 
@@ -37,7 +39,6 @@ class work_env:
             cap = cv2.VideoCapture(video)
             height = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
             width = cap = get(cv2.CAP_PROP_FRAME_HEIGHT)
-            fourcc = 
             # filename, fourcc-four char code of codec, fps, frameSize, [, isColor] 
             out = cv2.VideoWriter(os.path.join(video.dirname, 'output-' + os.path.filename(video)), fourcc, 20.0, (width, height))
             
@@ -52,7 +53,7 @@ class work_env:
         manual_set_priorities = [0, 1, 2, 3]
         return manual_set_priorities
 
-        # strategy with overlap area calculation
+        # TODO strategy with overlap area calculation
         
 def main():
     print("program launched with {0} arguments".format(len(sys.argv) - 1))
@@ -71,14 +72,13 @@ def main():
     transforms = ENV.transforms
     homos = ENV.homos
     homo_invs = ENV.homo_invs
+
     stats = ENV.get_frames()
     width = stats[0]
     height = stats[1]
     n = stats[2]
     frames = ENV.frames
-
-    # if you want to output the video files
-    output_frames = ENV.get_output_frames()
+    output_frames = ENV.output_frames
     
     # calculate the static masks 
     masks = masks.create_img_mask(height, width, n, transforms, priorities)
@@ -95,9 +95,22 @@ def main():
         # get segmented image for non-pro and left-over images for non-pro
         # transform left-overs for each non-pro imgs
         # layerup segmented images onto the stiched imgs
+        # multiprocess
+        segmented_masks = do_main(input_images)
+        reduced_input_images = []
+        for idx in range(n):
+            if index == priorities[0]: 
+                reduced_input_images = input_images[idx]
+                continue
+            reduced_input_images[idx] = cv2.bitwise_and(src1=input_images[idx], src2=(255 - segmented_masks[idx])).astype('uint8'),  
+            
 
-        output_images = transform_n_crop(input_images, priorities, masks, homos, homo_invs)
-    
+        # start video manipulation
+        # apply to each frame 
+        # concatenate each frame for a full video 
+        output_images = masks.transform_n_crop(reduced_input_images, priorities, masks, homos, homo_invs)
+        output_images = overlap_images(output_images, segmented_asks, input_images) # overlap the segmented pic onto the transformed image
+
         for idx in range(n):
             output_frames[idx].write(output_images[idx])
         
@@ -105,9 +118,6 @@ def main():
             break
         if cv2.waitKey(ENV.frame_interval) & 0xFF == ord('q'):
             break    
-    # start video manipulation
-    # apply to each frame 
-    # concatenate each frame for a full video
     
     for idx in range(n):
         frames[idx].release()

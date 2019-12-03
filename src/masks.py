@@ -26,7 +26,6 @@ def create_img_mask(r, w, n, transforms, priorities):
                             [c, r],
                             [c, 0]]).astype(np.float)
         all_corners = corners
-        return_masks.append(None)
         for index in range(n): 
             # create mask for index-th image
             
@@ -97,6 +96,17 @@ def preprocess(homo):
         transforms.append(skimage.ProjectiveTransform(np.matmul(idm, homo[i])))
     return inv_homes, transforms
     
+'''overlap segmented source images onto the transformed images'''
+def overlap_images(trans_images, segmented_masks, src_images):
+    output_images = []
+    for idx in range(len(trans_images)):
+        output = trans_images[idx]
+        R, C = np.shape(segmented_masks[0])
+        for row in range(R):
+            output[row][col] = src_images[row][col] for col in range(C):
+        output_images.append(output)
+    return output_images
+
 
 def stat():
     h0 = np.array([[0.176138, 0.647589,    -63.412272],
