@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 import random
 
+model = None
 def get_transform(train):
     transforms = []
     transforms.append(T.ToTensor())
@@ -102,9 +103,9 @@ def do_main(data=None, output_path=None, th_mask=0.5, th_scores=0.75, class_num=
             if filepath.endswith(".png") and filepath.find('cam') != -1:
                 filelist.append(filepath)
                 
-    
-    model = detection.maskrcnn_resnet50_fpn(num_classes=91, pretrained=True)
-    model.eval()
+    if model is None:
+        model = detection.maskrcnn_resnet50_fpn(num_classes=91, pretrained=True)
+        model.eval()
     # in_features = model.roi_heads.box_predictor.cls_score.in_features 
     # model.roi_heads.box_predictor = detection.faster_rcnn.FastRCNNPredictor(in_features, class_num)
     
