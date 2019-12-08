@@ -19,13 +19,13 @@ from matplotlib.collections import PatchCollection
 ''' now only support the fixed pairs: 0 - 1, 0 - 2, 0-3, 0-4'''
 def create_img_mask(r, c, n, transforms, priorities):
     pro_idx = priorities[0]  # [0, 1, 2, 3]
-    stitch_masks = np.array([pow(2, i) * np.ones((r, c)) for i in range(n)])
+    print(r, c, n)
+    stitch_masks = np.array([pow(2, i) * np.ones((r, c)) for i in range(2)])
     return_masks = []
     corners = np.array([[0, 0],
                         [0, r],
                         [c, r],
                         [c, 0]]).astype(np.float)
-    all_corners = corners
     for index in range(n):
         # create mask for index-th image
 
@@ -33,35 +33,39 @@ def create_img_mask(r, c, n, transforms, priorities):
             return_masks.append(None)
             continue
         else:
+            al_corners = corners 
+            warped_corners = transforms[pro_idx](corners)
+            al_corners = np.vstack((al_corners, warped_corners))
             warped_corners = transforms[index](corners)
-            al_corners = np.vstack((all_corners, warped_corners))
+            al_corners = np.vstack((al_corners, warped_corners))
 
             corner_min = np.min(al_corners, axis=0)
             corner_max = np.max(al_corners, axis=0)
             output_shape = (corner_max - corner_min)
+
             output_shape = np.ceil(output_shape[::-1])
             offset = SimilarityTransform(translation=-corner_min)
             offset_inv = SimilarityTransform(translation=corner_min)
 
             total_masks = []
-            total_masks.append(warp(stitch_masks[index, :, :], (transforms[pro_idx] + offset).inverse, output_shape=output_shape, cval=0))
-            total_masks.append(warp(stitch_masks[index, :, :], (transforms[index] + offset).inverse, output_shape=output_shape, cval=0))
+            total_masks.append(warp(stitch_masks[pro_idx, :, :], (transforms[pro_idx] + offset).inverse, output_shape=output_shape, cval=0))
+            total_masks.append(warp(stitch_masks[1, :, :], (transforms[1] + offset).inverse, output_shape=output_shape, cval=0))
             total_masks = np.sum(np.array(total_masks), axis=0)
 
             # return val
             transform_inv = ProjectiveTransform(transforms[index]._inv_matrix)
             return_masks.append(warp(total_masks, (offset_inv + transform_inv).inverse, output_shape=[r, c], cval=0))
             return_masks[index][(return_masks[index] % 1.0 != 0)] = pow(2, 1)  # pow(2,i)
-            print(return_masks[index])
             
             ret_masks = return_masks[index]
             # now the image that has to be bitwise-and. so the background image has to be 255
             # the mask[i]. the overlap_label will be 2^len - 1 = 3, overlap label
             overlap_value = pow(2, 2) - 1 # 3
-            ret_masks[(ret_masks != overlap_value)] = 255
+            # print ((ret_masks==3.0).sum())
+            ret_masks[(ret_masks != overlap_value)] = 255 # white
             ret_masks[(ret_masks == overlap_value)] = 0 # reverse mask
             ret_masks = ret_masks.astype('uint8')
-            print((ret_masks[index] == 255).sum())
+            # print((ret_masks[index] == 255).sum())
     return return_masks
 
 
@@ -71,15 +75,17 @@ def transform_n_crop(images, priorities, stitch_masks, homo, inv_homo):
     recovered_imgs = []
 
     for i in range(len(images)):
-        if i == pro_idx:
-            recovered.append((images[i]).astype('uint8'))
+        if i == pro_idx: 
+            recovered_imgs.append((images[i]))
             continue
         else:
             # transform the pro image and crop into the target image
             transform_pro_to_target = skimage.transform.ProjectiveTransform(np.matmul(inv_homo[i], homo[pro_idx]))  # inv_h1, h0
-            trans_img_pro_to_target = warp(images[pro_idx], (transform_pro_to_target).inverse, cval=0)
-            result = (images[i] + cv2.bitwise_and(src1=trans_img_pro_to_target.astye('uint8'), src2=(255 - stitch_masks[i]))).astype('uint8')  # masks[1]
-            # maskedImg = Image.fromarray(result.astype('uint8'))
+            #cv2.imwrite('./transform-origin-img.png', images[pro_idx])
+            trans_img_pro_to_target = warp(images[pro_idx].astype('float'), (transform_pro_to_target).inverse, cval=0)
+            result = cv2.bitwise_and(src1=trans_img_pro_to_target.astype('uint8'), src2=(255 - stitch_masks[i]).astype('uint8'))  # masks[1]
+            # cv2.imwrite('./trans-result.png', result)
+            result = (result + images[i]).astype('uint8')
             recovered_imgs.append(result)
 
     return recovered_imgs
@@ -107,10 +113,13 @@ def overlap_images(trans_images, priorities, segmented_masks, src_images):
             continue
         output = trans_images[idx]
         src_img = src_images[idx]
-        R, C = np.shape(segmented_masks[0])
+        if segmented_masks[idx] is None:
+            print("none element in segmented mask with idx : ", idx)
+        R, C = np.shape(segmented_masks[idx])
+        segmented_mask = segmented_masks[idx]
         for row in range(R):
             for col in range(C):
-                if segmented_masks[row][col] == 255:
+                if segmented_mask[row][col] == 255:
                     output[row][col] = src_img[row][col]
         output_images.append(output)
     return output_images
