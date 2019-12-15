@@ -76,6 +76,7 @@ class work_env:
 
 TAG_TEST = 2
 TAG_NORMAL = 1
+
 DUR_SETUP = "setup the environment"
 DUR_TRANS_MASK_CREATION = "create transform area mask"
 DUR_INPUT_REDUCE = "create reduced input"
@@ -185,7 +186,7 @@ def main(offset_frames):
         tmp_time = time.time()
         t_map[DUR_INPUT_REDUCE] += (tmp_time - curr_time)
         curr_time = tmp_time
-        '''    
+            
         # start video manipulation, apply to each frame 
         output_images = masks.transform_n_crop(reduced_input_images, priorities, stitch_masks, homos, homo_invs)
         output_images = masks.overlap_images(output_images, priorities, segmented_masks, input_images) # overlap the segmented pic onto the transformed image
@@ -193,6 +194,7 @@ def main(offset_frames):
         # test use 
         output_images = reduced_input_images
         output_images = masks.overlap_images(output_images, priorities, segmented_masks, input_images) # overlap the segmented pic onto the transformed image
+        '''
         tmp_time = time.time()
         t_map[DUR_OVERLAP] += (tmp_time - curr_time)
         curr_time = tmp_time
