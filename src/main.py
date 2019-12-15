@@ -83,7 +83,7 @@ DUR_HUMAN_SEGMENTATION = "create segmentation mask for overlap area"
 DUR_OVERLAP = "create the synthesized output image"
 DUR_MODEL_PREDICTION = "DNN model prediction(Part of Upper Item - Segmentation mask creation)"
 DUR_WHOLE = "overall runtime: "
-DUR_ARR = [DUR_SETUP, DUR_TRANS_MASK_CREATION, DUR_INPUT_REDUCE< DUR_HUMAN_SEGMENTATION, DUR_MODEL_PREDICTION, DUR_OVERLAP]
+DUR_ARR = [DUR_SETUP, DUR_TRANS_MASK_CREATION, DUR_INPUT_REDUCE, DUR_HUMAN_SEGMENTATION, DUR_MODEL_PREDICTION]
 
 t_map = {}
 t_map[DUR_INPUT_REDUCE] = 0
